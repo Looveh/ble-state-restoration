@@ -41,6 +41,12 @@ const connect = (p) => {
     });
 }
 
+const scan = () => {
+  log("scan");
+
+  BleManager.scan([serviceUUID], 600, false);
+}
+
 log("Parsing file");
 
 export default class BleStateRestoration extends Component {
@@ -71,6 +77,16 @@ export default class BleStateRestoration extends Component {
       this.handleDidUpdateValueForCharacteristic
     );
 
+    NativeAppEventEmitter.addListener(
+      "BleManagerStopScan",
+      this.handleStopScan
+    );
+
+    NativeAppEventEmitter.addListener(
+      "BleManagerDisconnectPeripheral",
+      this.handleDisconnectPeripheral
+    );
+
     BleManager.checkState();
 
     BleManager.getConnectedPeripherals([serviceUUID])
@@ -94,14 +110,24 @@ export default class BleStateRestoration extends Component {
     log(`handleDidUpdateState: ${state}`);
 
     if (state === "on") {
-      log("Scanning");
-
-      BleManager.scan([serviceUUID], 30, false);
+      scan();
     }
   }
 
   handleDidUpdateValueForCharacteristic(value) {
     log(`handleDidUpdateValueForCharacteristic: ${JSON.stringify(value)}`);
+  }
+
+  handleStopScan() {
+    log("handleStopScan");
+
+    scan();
+  }
+
+  handleDisconnectPeripheral() {
+    log("handleDisconnectPeripheral");
+
+    scan();
   }
 
   render() {
