@@ -18,19 +18,38 @@ import PushNotification from "react-native-push-notification";
 const serviceUUID = "1814";
 const charUUID = "2A53";
 
-PushNotification.localNotification({
-  message: "parsing file"
-});
+const log = (msg) => {
+  console.log(msg);
+
+  PushNotification.localNotification({
+    message: msg
+  });
+};
+
+const connect = (p) => {
+  BleManager.connect(p.id)
+    .then((pInfo) => {
+      log(`connected: ${JSON.stringify(pInfo)}`);
+
+      return BleManager.startNotification(p.id, serviceUUID, charUUID);
+    })
+    .then(() => {
+      log("startNotification");
+    })
+    .catch((err) => {
+      log(`startNotification error: ${JSON.stringify(err)}`);
+    });
+}
+
+log("Parsing file");
 
 export default class BleStateRestoration extends Component {
 
   componentDidMount() {
+    log("componentDidMount");
+
     PushNotification.configure({
       requestPermission: true
-    });
-
-    PushNotification.localNotification({
-      message: "componentDidMount"
     });
 
     BleManager.start({
@@ -53,39 +72,36 @@ export default class BleStateRestoration extends Component {
     );
 
     BleManager.checkState();
+
+    BleManager.getConnectedPeripherals([serviceUUID])
+      .then((peripherals) => {
+        peripherals.forEach((p) => {
+          connect(p);
+        });
+      })
+      .catch((err) => {
+        log(`getConnectedPeripherals error: ${JSON.stringify(err)}`);
+      })
   }
 
   handleDiscoverPeripheral(p) {
-    console.log('handleDiscoverPeripheral: ', p);
+    log(`handleDiscoverPeripheral: ${JSON.stringify(p)}`);
 
-    BleManager.connect(p.id)
-      .then((pInfo) => {
-        console.log("connected: ", pInfo);
-
-        return BleManager.startNotification(p.id, serviceUUID, charUUID);
-      })
-      .then(() => {
-        console.log("notification started");
-      })
-      .catch((err) => {
-        console.err("connect error:", err);
-      });
+    connect(p);
   }
 
   handleDidUpdateState({state}) {
-    console.log("handleDidUpdateState: ", state);
+    log(`handleDidUpdateState: ${state}`);
 
     if (state === "on") {
+      log("Scanning");
+
       BleManager.scan([serviceUUID], 30, false);
     }
   }
 
   handleDidUpdateValueForCharacteristic(value) {
-    console.log("handleDidUpdateValueForCharacteristic: ", value);
-
-    PushNotification.localNotification({
-      message: `Value: ${value.value}`
-    });
+    log(`handleDidUpdateValueForCharacteristic: ${JSON.stringify(value)}`);
   }
 
   render() {
